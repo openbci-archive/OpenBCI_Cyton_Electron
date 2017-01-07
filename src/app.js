@@ -24,29 +24,25 @@ var appDir = jetpack.cwd(app.getAppPath());
 // here files like it is node.js! Welcome to Electron world :)
 console.log('The author of this app is:', appDir.read('package.json', 'json').author);
 
-var pageSize = 256;
+const fp = path.join(app.getAppPath(), 'app', 'Arduino', 'DefaultBoard.ino.hex');
+console.log(`Path for hex: ${fp}`);
+const data = fs.readFileSync(fp, { encoding: 'utf8' });
+const hex = intel_hex.parse(data).data;
+console.log('Hex file ready for upload!');
+
+var pageSize = 128;
 var delay1 = 1; //minimum is 2.5us, so anything over 1 fine?
 var delay2 = 1;
 var signature = new Buffer([0x1e, 0xa8, 0x02]);
 
 var options = {
-  timeout:0xc8,
-  stabDelay:0x64,
-  cmdexeDelay:0x19,
-  synchLoops:0x20,
-  byteDelay:0x00,
-  pollValue:0x53,
-  pollIndex:0x03
+  pagesizelow:pageSize
 };
 
 var uploadCode = () => {
   const port = getPortName();
   console.log(`Start.....`);
-  const fp = path.join(app.getAppPath(), 'app', 'Arduino', 'DefaultBoard.ino.hex');
-  console.log(`Path for hex: ${fp}`);
-  const data = fs.readFileSync(fp, { encoding: 'utf8' });
-  const hex = intel_hex.parse(data).data;
-  console.log('Hex file ready for upload!');
+
 
   console.log(`Opening serial port ${port}`);
   var serialPort = new SerialPort(port, {
@@ -66,12 +62,12 @@ var uploadCode = () => {
 
   // debug
   programmer.parser.on('rawinput',function(buf){
-    console.log("->",buf.toString('hex'));
-  })
+    // console.log("->",buf.toString('hex'));
+  });
 
   programmer.parser.on('raw',function(buf){
-    console.log("<-",buf.toString('hex'));
-  })
+    // console.log("<-",buf.toString('hex'));
+  });
 
   // do it!
   programmer.sync(5,function(err,data){
@@ -82,17 +78,17 @@ var uploadCode = () => {
     console.log('callback sig',err," ",data);
   });
 
-  // programmer.enterProgrammingMode(options,function(err,data){
-  //   console.log('enter programming mode.',err,data);
-  // });
+  programmer.enterProgrammingMode(options,function(err,data){
+    console.log('enter programming mode.',err,data);
+  });
 
-  // programmer.upload( hex, pageSize,function(err,data){
-  //   console.log('upload> ',err,data);
-  //
-  //   programmer.exitProgrammingMode(function(err,data){
-  //     console.log('exitProgrammingMode> ',err,data)
-  //   })
-  // });
+  programmer.upload( hex, pageSize,function(err,data){
+    console.log('upload> ',err,data);
+
+    programmer.exitProgrammingMode(function(err,data){
+      console.log('exitProgrammingMode> ',err,data)
+    })
+  });
 };
 
 document.addEventListener('DOMContentLoaded', function () {
