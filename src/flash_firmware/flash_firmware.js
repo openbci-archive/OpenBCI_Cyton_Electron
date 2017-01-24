@@ -1,4 +1,4 @@
 export var getPortName = function () {
-    return '/dev/cu.usbserial-DB00JAKZ';
+    return '/dev/cu.usbserial-DN0094J1';
 };
 
